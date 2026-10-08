@@ -272,6 +272,109 @@ public class App extends Application {
         alert.show();
     }
 
+    private void removeTrack(Track track) {
+        int index = tracks.indexOf(track);
+        if (index < 0) {
+            return;
+        }
+        boolean wasCurrent = track == currentTrack;
+        if (wasCurrent && mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.dispose();
+            mediaPlayer = null;
+            currentTrack = null;
+            mediaView.setMediaPlayer(null);
+            audioArtwork.setVisible(true);
+            fileName.setText("No media selected");
+            progress.setValue(0);
+            updateTimeLabel(Duration.ZERO, Duration.ZERO);
+        }
+        tracks.remove(track);
+        if (wasCurrent) {
+            if (!tracks.isEmpty()) {
+                int newIndex = Math.min(index, tracks.size() - 1);
+                playlist.getSelectionModel().select(newIndex);
+            } else {
+                playlist.getSelectionModel().clearSelection();
+            }
+            updateTransportButtons();
+        }
+    }
+
+    private void seekToSliderPosition() {
+        if (mediaPlayer != null) {
+            mediaPlayer.seek(Duration.seconds(progress.getValue()));
+        }
+    }
+
+    private boolean hasSeekModifier(KeyEvent event) {
+        return event.isShiftDown() || event.isAltDown() || event.isControlDown();
+    }
+
+    private double seekAmount(KeyEvent event) {
+        if (event.isControlDown() && event.isAltDown()) {
+            return 300;
+        }
+        if (event.isControlDown()) {
+            return 60;
+        }
+        if (event.isAltDown()) {
+            return 10;
+        }
+        if (event.isShiftDown()) {
+            return 3;
+        }
+        return 5;
+    }
+
+    private void toggleMute() {
+        muted = !muted;
+        if (mediaPlayer != null) {
+            mediaPlayer.setMute(muted);
+        }
+        volumeButton.setGraphic(icon(muted ? "mute.png" : "volume.png", 20));
+        volumeButton.setAccessibleText(muted ? "Unmute audio" : "Mute audio");
+    }
+
+    private void adjustVolume(double amount) {
+        volumeLevel = Math.max(0, Math.min(1, volumeLevel + amount));
+        if (mediaPlayer != null) {
+            mediaPlayer.setVolume(volumeLevel);
+        }
+        if (volumeLevel == 0 && !muted) {
+            muted = true;
+            if (mediaPlayer != null) {
+                mediaPlayer.setMute(true);
+            }
+        } else if (volumeLevel > 0 && muted) {
+            muted = false;
+            if (mediaPlayer != null) {
+                mediaPlayer.setMute(false);
+            }
+        }
+        volumeButton.setGraphic(icon(muted ? "mute.png" : "volume.png", 20));
+        volumeButton.setAccessibleText(muted ? "Unmute audio" : "Mute audio");
+    }
+
+    private static final class Track {
+        private final File file;
+        private final String name;
+        private final boolean video;
+
+        private Track(File file) {
+            this.file = file;
+            this.name = file.getName();
+            String lowerCaseName = name.toLowerCase(java.util.Locale.ROOT);
+            this.video = lowerCaseName.endsWith(".mp4")
+                    || lowerCaseName.endsWith(".m4v")
+                    || lowerCaseName.endsWith(".mov");
+        }
+
+        private boolean isVideo() {
+            return video;
+        }
+    }
+
     @Override
     public void start(Stage stage) {
         Label signal = new Label("♫  Panyaza's Mediaplayer");
@@ -530,108 +633,7 @@ public class App extends Application {
         updateTransportButtons();
     }
 
-    private void removeTrack(Track track) {
-        int index = tracks.indexOf(track);
-        if (index < 0) {
-            return;
-        }
-        boolean wasCurrent = track == currentTrack;
-        if (wasCurrent && mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-            mediaPlayer = null;
-            currentTrack = null;
-            mediaView.setMediaPlayer(null);
-            audioArtwork.setVisible(true);
-            fileName.setText("No media selected");
-            progress.setValue(0);
-            updateTimeLabel(Duration.ZERO, Duration.ZERO);
-        }
-        tracks.remove(track);
-        if (wasCurrent) {
-            if (!tracks.isEmpty()) {
-                int newIndex = Math.min(index, tracks.size() - 1);
-                playlist.getSelectionModel().select(newIndex);
-            } else {
-                playlist.getSelectionModel().clearSelection();
-            }
-            updateTransportButtons();
-        }
-    }
-
-    private void seekToSliderPosition() {
-        if (mediaPlayer != null) {
-            mediaPlayer.seek(Duration.seconds(progress.getValue()));
-        }
-    }
-
-    private boolean hasSeekModifier(KeyEvent event) {
-        return event.isShiftDown() || event.isAltDown() || event.isControlDown();
-    }
-
-    private double seekAmount(KeyEvent event) {
-        if (event.isControlDown() && event.isAltDown()) {
-            return 300;
-        }
-        if (event.isControlDown()) {
-            return 60;
-        }
-        if (event.isAltDown()) {
-            return 10;
-        }
-        if (event.isShiftDown()) {
-            return 3;
-        }
-        return 5;
-    }
-
-    private void toggleMute() {
-        muted = !muted;
-        if (mediaPlayer != null) {
-            mediaPlayer.setMute(muted);
-        }
-        volumeButton.setGraphic(icon(muted ? "mute.png" : "volume.png", 20));
-        volumeButton.setAccessibleText(muted ? "Unmute audio" : "Mute audio");
-    }
-
-    private void adjustVolume(double amount) {
-        volumeLevel = Math.max(0, Math.min(1, volumeLevel + amount));
-        if (mediaPlayer != null) {
-            mediaPlayer.setVolume(volumeLevel);
-        }
-        if (volumeLevel == 0 && !muted) {
-            muted = true;
-            if (mediaPlayer != null) {
-                mediaPlayer.setMute(true);
-            }
-        } else if (volumeLevel > 0 && muted) {
-            muted = false;
-            if (mediaPlayer != null) {
-                mediaPlayer.setMute(false);
-            }
-        }
-        volumeButton.setGraphic(icon(muted ? "mute.png" : "volume.png", 20));
-        volumeButton.setAccessibleText(muted ? "Unmute audio" : "Mute audio");
-    }
-
-    private static final class Track {
-        private final File file;
-        private final String name;
-        private final boolean video;
-
-        private Track(File file) {
-            this.file = file;
-            this.name = file.getName();
-            String lowerCaseName = name.toLowerCase(java.util.Locale.ROOT);
-            this.video = lowerCaseName.endsWith(".mp4")
-                    || lowerCaseName.endsWith(".m4v")
-                    || lowerCaseName.endsWith(".mov");
-        }
-
-        private boolean isVideo() {
-            return video;
-        }
-    }
+    
 
     public static void main(String[] args) {
         launch(args);
