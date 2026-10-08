@@ -54,6 +54,7 @@ public class App extends Application {
     private Button previous;
     private Button rewind;
     private Button forward;
+    private Button stop;
     private Button next;
     private Button volumeButton;
     private Label playbackTime;
@@ -138,6 +139,7 @@ public class App extends Application {
             });
             newPlayer.setOnPlaying(this::updateTransportButtons);
             newPlayer.setOnPaused(this::updateTransportButtons);
+            newPlayer.setOnStopped(this::updateTransportButtons);
             newPlayer.currentTimeProperty().addListener((observable, oldTime, currentTime) -> {
                 progress.setValue(currentTime.toSeconds());
                 updateTimeLabel(currentTime, newPlayer.getTotalDuration());
@@ -207,6 +209,7 @@ public class App extends Application {
         mainPlay.setManaged(!playing);
 
         boolean hasTracks = !tracks.isEmpty();
+        boolean hasPlayer = mediaPlayer != null;
         play.setDisable(!hasTracks);
         mainPlay.setDisable(!hasTracks);
         miniPlay.setDisable(!hasTracks);
@@ -214,6 +217,7 @@ public class App extends Application {
         rewind.setDisable(!hasTracks);
         forward.setDisable(!hasTracks);
         next.setDisable(!hasTracks);
+        stop.setDisable(!hasPlayer);
     }
 
     private void updateTimeLabel(Duration elapsed, Duration duration) {
@@ -387,10 +391,11 @@ public class App extends Application {
         play.getStyleClass().add("transport-play");
         rewind = iconButton("rewind.png", "Rewind 10 seconds", "transport-control", 20);
         forward = iconButton("fast-forward.png", "Forward 10 seconds", "transport-control", 20);
+        stop = iconButton("stop.png", "Stop playback", "transport-control", 20);
         previous = iconButton("prev.png", "Play previous song", "transport-control", 20);
         next = iconButton("next.png", "Play next song", "transport-control", 20);
 
-        HBox transport = new HBox(18, previous, rewind, play, forward, next);
+        HBox transport = new HBox(18, previous, rewind, play, stop, forward, next);
         transport.setAlignment(Pos.CENTER);
         transport.getStyleClass().add("transport");
 
@@ -416,6 +421,7 @@ public class App extends Application {
         play.setOnAction(event -> togglePlayback.run());
         mainPlay.setOnAction(event -> togglePlayback.run());
         miniPlay.setOnAction(event -> togglePlayback.run());
+        stop.setOnAction(event -> stopPlayback());
 
         addMusic.setOnAction(event -> {
             FileChooser chooser = new FileChooser();
